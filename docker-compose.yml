@@ -1,0 +1,69 @@
+
+
+services:
+  sqlserver:
+    image: "mcr.microsoft.com/mssql/server"
+    container_name: bd_clientes
+    ports:
+      - "1433:1433"
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=UPT.2024
+    volumes:
+      - ./db:/tmp
+    networks:
+      - app-network
+
+  sqlcmd:
+    image: mcr.microsoft.com/mssql-tools
+    container_name: sqlcmd_client
+    depends_on:
+      - sqlserver
+    entrypoint: [ "sleep", "infinity" ]
+    volumes:
+      - ./db:/tmp
+    networks:
+      - app-network
+
+  api:
+    build:
+      context: .
+    container_name: api_clientes
+    ports:
+      - "5000:8080"
+    environment:
+      - ConnectionStrings__ClienteDB=Server=sqlserver;Database=BD_CLIENTES;User Id=sa;Password=UPT.2024;TrustServerCertificate=True
+    depends_on:
+      - sqlserver
+    networks:
+      - app-network
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    restart: always
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./metrics/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      - api
+    networks:
+      - app-network
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./metrics/grafana_ds:/etc/grafana/provisioning/datasources
+      - ./metrics/grafana_db:/etc/grafana/provisioning/dashboards
+    depends_on:
+      - prometheus
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
