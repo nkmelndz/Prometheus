@@ -1,0 +1,64 @@
+name: Delivery and Memory Metrics Validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Entorno de despliegue'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  PROMETHEUS_URL: "http://localhost:9090"  # Asegúrate de que Prometheus esté accesible en este puerto
+  METRIC_QUERY: "process_virtual_memory_bytes{}"  # Métrica de memoria virtual
+
+jobs:
+  deploy-and-monitor:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Start containers
+        run: |
+          docker-compose up -d --force-recreate
+          echo "Esperando 30 segundos para que los servicios estén operativos..."
+          sleep 30
+
+      - name: Verify Prometheus memory metric
+        id: check-memory
+        run: |
+          sudo apt-get update && sudo apt-get install -y curl jq
+
+          # Consulta la métrica de memoria
+          RESPONSE=$(curl -s -G "$PROMETHEUS_URL/api/v1/query" --data-urlencode "query=$METRIC_QUERY")
+          echo "Respuesta completa de Prometheus:"
+          echo "$RESPONSE" | jq .
+
+          # Extrae y valida el valor (en bytes)
+          METRIC_VALUE=$(echo "$RESPONSE" | jq -r '.data.result[0].value[1]')
+          
+          if [ -z "$METRIC_VALUE" ] || [ "$METRIC_VALUE" == "null" ]; then
+            echo "::error::No se encontró la métrica process_virtual_memory_bytes"
+            exit 1
+          else
+            echo "::notice::Memoria virtual utilizada: $METRIC_VALUE bytes"
+            # Opcional: Convertir bytes a MB/GB para mejor legibilidad
+            MB_VALUE=$(echo "$METRIC_VALUE / 1024 / 1024" | bc)
+            echo "::notice::Equivale a aproximadamente $MB_VALUE MB"
+          fi
+
+      - name: Debug logs (on failure)
+        if: failure()
+        run: |
+          docker-compose logs api
+          docker-compose logs prometheus
+
+      - name: Stop containers
+        if: always()
+        run: docker-compose down
