@@ -16,9 +16,17 @@ public class ClientesController : ControllerBase
     [HttpGet]
     public IActionResult GetClientes()
     {
-        var clientes = _context.Clientes.ToList();
-        return Ok(clientes);
+        try
+        {
+            var clientes = _context.Clientes.ToList();
+            return Ok(clientes);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error al obtener clientes: {ex.Message}");
+        }
     }
+
 
     // GET: api/clientes/5
     [HttpGet("{id}")]

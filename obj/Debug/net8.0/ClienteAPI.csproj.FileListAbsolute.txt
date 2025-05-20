@@ -89,3 +89,4 @@ D:\Users\n\Desktop\ClienteAPI\obj\Debug\net8.0\refint\ClienteAPI.dll
 D:\Users\n\Desktop\ClienteAPI\obj\Debug\net8.0\ClienteAPI.pdb
 D:\Users\n\Desktop\ClienteAPI\obj\Debug\net8.0\ClienteAPI.genruntimeconfig.cache
 D:\Users\n\Desktop\ClienteAPI\obj\Debug\net8.0\ref\ClienteAPI.dll
+D:\Users\n\Desktop\ClienteAPI\obj\Debug\net8.0\ClienteAPI.sourcelink.json

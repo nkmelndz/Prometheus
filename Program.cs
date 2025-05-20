@@ -1,6 +1,9 @@
 using ClienteAPI.Data;
 using Microsoft.EntityFrameworkCore;
 using Prometheus;
+
+AppContext.SetSwitch("Microsoft.EntityFrameworkCore.EnableLegacyTimestampBehavior", true); // <-- 🔥 Agrégala aquí
+
 var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddDbContext<BdClientesContext>(opt => opt.UseSqlServer(builder.Configuration.GetConnectionString("ClienteDB")));
@@ -13,7 +16,7 @@ var app = builder.Build();
 app.UseMetricServer();
 app.UseSwagger();
 app.UseSwaggerUI();
-//app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
 app.UseAuthorization();
 app.UseHttpMetrics();
 app.MapControllers();
