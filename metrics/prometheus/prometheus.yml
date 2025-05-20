@@ -4,7 +4,13 @@ global:
 scrape_configs:
   - job_name: 'apiCliente'
     scheme: http
-    metrics_path: /metrics
+    metrics_path: /metrics  # ✔️ Correcto (este endpoint sí expone métricas en formato Prometheus)
     static_configs:
       - targets:
           - host.docker.internal:5000
+
+# ¡Elimina este job! "/healthz" no es compatible con Prometheus.
+# - job_name: 'api_health'
+#   metrics_path: /healthz  # ❌ Esto no funcionará (devuelve JSON, no métricas Prometheus)
+#   static_configs:
+#     - targets: ['host.docker.internal:5000']

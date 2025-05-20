@@ -46,6 +46,22 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "dependencies": {
+            "AspNetCore.HealthChecks.Prometheus.Metrics": {
+              "target": "Package",
+              "version": "[9.0.0, )"
+            },
+            "AspNetCore.HealthChecks.SqlServer": {
+              "target": "Package",
+              "version": "[9.0.0, )"
+            },
+            "AspNetCore.HealthChecks.UI": {
+              "target": "Package",
+              "version": "[9.0.0, )"
+            },
+            "AspNetCore.HealthChecks.UI.Client": {
+              "target": "Package",
+              "version": "[9.0.0, )"
+            },
             "Microsoft.AspNetCore.OpenApi": {
               "target": "Package",
               "version": "[8.0.7, )"
@@ -60,11 +76,11 @@
             },
             "prometheus-net.AspNetCore": {
               "target": "Package",
-              "version": "[7.0.0, )"
+              "version": "[8.2.1, )"
             },
             "prometheus-net.AspNetCore.HealthChecks": {
               "target": "Package",
-              "version": "[7.0.0, )"
+              "version": "[8.2.1, )"
             }
           },
           "imports": [
