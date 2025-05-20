@@ -14,7 +14,7 @@ on:
 
 env:
   PROMETHEUS_URL: "http://localhost:9090"
-  METRIC_QUERY: "up{job='api'}"  # Métrica alternativa más confiable
+  METRIC_QUERY: "aspnetcore_healthcheck_status{name=\"sqlserver\"}" # Métrica alternativa más confiable
 
 jobs:
   deploy-and-monitor:
