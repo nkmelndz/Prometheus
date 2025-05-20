@@ -1,52 +1,41 @@
-name: Build and Deploy
+name: Build and Publish Docker Image
 
 on:
   push:
     branches: [ master ]
-  pull_request:
-    branches: [ master ]
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: tu-usuario/api-clientes  # Cambia a tu nombre de usuario/organización
+  REGISTRY: ghcr.io  # GitHub Container Registry
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  build-and-deploy:
+  build-and-push:
     runs-on: ubuntu-latest
-    services:
-      sqlserver:
-        image: mcr.microsoft.com/mssql/server
-        ports: [ "1433:1433" ]
-        env:
-          ACCEPT_EULA: Y
-          SA_PASSWORD: UPT.2024
-        options: >-
-          --health-cmd "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P UPT.2024 -Q 'SELECT 1' || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 3
+    permissions:
+      contents: read
+      packages: write
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Login to GitHub Container Registry
+      - name: Log in to the Container registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build API image
-        run: docker-compose build api  # Construye solo el servicio 'api'
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
-      - name: Tag and push API image
-        run: |
-          docker tag api_clientes ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-
-      - name: Deploy (ejemplo para entornos de prueba)
-        run: |
-          docker-compose up -d sqlserver api prometheus grafana
-        env:
-          ConnectionStrings__ClienteDB: "Server=sqlserver;Database=BD_CLIENTES;User Id=sa;Password=UPT.2024;TrustServerCertificate=True"
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
