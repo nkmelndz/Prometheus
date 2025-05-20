@@ -3,7 +3,6 @@ name: Build and Publish Docker Image
 on:
   push:
     branches: [ main ]
-    tags: [ 'v*' ]  # Opcional: publicar cuando se crea un tag
 
 env:
   REGISTRY: ghcr.io  # GitHub Container Registry
