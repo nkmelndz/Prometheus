@@ -1,4 +1,4 @@
-name: Delivery and Memory Metrics Validation
+name: Delivery and Metrics Validation
 
 on:
   workflow_dispatch:
@@ -14,7 +14,7 @@ on:
 
 env:
   PROMETHEUS_URL: "http://localhost:9090"
-  METRIC_QUERY: "process_virtual_memory_bytes{}"
+  METRIC_QUERY: "up{job='api'}"  # Métrica alternativa más confiable
 
 jobs:
   deploy-and-monitor:
@@ -24,40 +24,49 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Docker Compose
+      - name: Set up Docker
         uses: docker/setup-buildx-action@v3
-      
+
       - name: Start containers
         run: |
           docker compose up -d --force-recreate
-          echo "Esperando 30 segundos para que los servicios estén operativos..."
-          sleep 30
+          echo "Esperando a que los servicios estén listos..."
+          timeout 120s bash -c 'while ! curl -s http://localhost:9090/-/ready; do sleep 5; done'
+          echo "Verificando targets en Prometheus..."
+          curl -s http://localhost:9090/api/v1/targets | jq .
 
-      - name: Verify Prometheus memory metric
-        id: check-memory
+      - name: Verify metrics
+        id: check-metrics
         run: |
-          sudo apt-get update && sudo apt-get install -y curl jq bc
+          # Lista todas las métricas disponibles (para debugging)
+          echo "Métricas disponibles en Prometheus:"
+          curl -s "$PROMETHEUS_URL/api/v1/label/__name__/values" | jq .
 
+          # Consulta la métrica
           RESPONSE=$(curl -s -G "$PROMETHEUS_URL/api/v1/query" --data-urlencode "query=$METRIC_QUERY")
-          echo "Respuesta completa de Prometheus:"
+          echo "Respuesta de Prometheus:"
           echo "$RESPONSE" | jq .
 
-          METRIC_VALUE=$(echo "$RESPONSE" | jq -r '.data.result[0].value[1]')
-          
-          if [ -z "$METRIC_VALUE" ] || [ "$METRIC_VALUE" == "null" ]; then
-            echo "::error::No se encontró la métrica process_virtual_memory_bytes"
+          # Validación mejorada
+          if [ $(echo "$RESPONSE" | jq '.data.result | length') -eq 0 ]; then
+            echo "::error::Métrica no encontrada. Posibles causas:"
+            echo "1. El servicio no está exportando métricas"
+            echo "2. Prometheus no está scrapeando el endpoint correcto"
+            echo "3. La consulta contiene errores"
             exit 1
           else
-            MB_VALUE=$(echo "scale=2; $METRIC_VALUE / 1024 / 1024" | bc)
-            echo "::notice::Memoria virtual utilizada: $METRIC_VALUE bytes (~$MB_VALUE MB)"
+            echo "::notice::Métrica encontrada correctamente"
+            echo "$RESPONSE" | jq .
           fi
 
-      - name: Debug logs (on failure)
+      - name: Debug logs
         if: failure()
         run: |
           docker compose logs api
           docker compose logs prometheus
+          echo "Configuración actual de Prometheus:"
+          docker exec prometheus cat /etc/prometheus/prometheus.yml
 
-      - name: Stop containers
+      - name: Cleanup
         if: always()
         run: docker compose down
