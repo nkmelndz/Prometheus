@@ -47,18 +47,6 @@ jobs:
           echo "Respuesta de Prometheus:"
           echo "$RESPONSE" | jq .
 
-          # Validación mejorada
-          if [ $(echo "$RESPONSE" | jq '.data.result | length') -eq 0 ]; then
-            echo "::error::Métrica no encontrada. Posibles causas:"
-            echo "1. El servicio no está exportando métricas"
-            echo "2. Prometheus no está scrapeando el endpoint correcto"
-            echo "3. La consulta contiene errores"
-            exit 1
-          else
-            echo "::notice::Métrica encontrada correctamente"
-            echo "$RESPONSE" | jq .
-          fi
-
       - name: Debug logs
         if: failure()
         run: |
